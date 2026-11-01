@@ -19,10 +19,11 @@ button {
   transition: .15s transform, .15s background;
 }
 button:hover { transform: translateY(-1px) }
-input, select {
+input, select, textarea {
   width: 100%; padding: 10px 12px;
   border: 1px solid #cbd7df; border-radius: 8px;
   font: inherit; color: var(--ink); background: #fff;
 }
 select { min-width: 165px; width: auto; }
+textarea { resize: vertical; }
 label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: #405467; }

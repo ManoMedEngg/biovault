@@ -303,8 +303,15 @@
         <label>Log date <input name="date" type="date" required></label>
         <label>Author <input name="author" required placeholder="Your name"></label>
       </div>
-      <p class="helper log-editor-hint">Add the work completed and any needs or follow-up for each department. Leave a department blank if there is nothing to report.</p>
-      <div id="departmentUpdates" class="department-updates"></div>
+      <p class="helper log-editor-hint">Complete the end-of-day report below. You can edit the template and type directly into the report.</p>
+      <label class="wide">Department
+        <select name="department" id="logDepartment" required>
+          <option value="">Select department</option>
+        </select>
+      </label>
+      <label class="log-report-label">Department end-of-day report
+        <textarea name="text" id="logReportText" rows="14" required spellcheck="true"></textarea>
+      </label>
       <div class="modal-actions">
         <button type="button" class="plain" id="logCancel">Cancel</button>
         <button class="primary" type="submit">Save daily report</button>
@@ -317,7 +324,7 @@
     <div class="modal-head"><span>Daily update</span><button class="close" type="button" id="logDetailClose">×</button></div>
     <div class="log-detail">
       <h2 id="detailTitle"></h2>
-      <p id="detailText"></p>
+      <pre id="detailText" class="log-report-text"></pre>
       <div id="comments"></div>
       <form id="commentForm" class="comment-box" data-write>
         <input name="author" required placeholder="Your name">

@@ -410,46 +410,16 @@
   /* ---------- Logs ---------- */
   const logDepartments = () => [...new Set([
     ...equipment.map(item => item.department),
-    ...logs.map(item => item.department)
+    ...logs.map(item => item.department || item.scope)
   ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-  function getLogFields(item) {
-    if (item.work !== undefined || item.needs !== undefined) {
-      return { work: item.work || '', needs: item.needs || '' };
-    }
-    const text = item.text || '';
-    const needsMarker = '\n\nNeeds / follow-up:\n';
-    const workMarker = 'Work completed:\n';
-    if (text.startsWith(workMarker) && text.includes(needsMarker)) {
-      const [work, needs] = text.slice(workMarker.length).split(needsMarker, 2);
-      return { work: work === '—' ? '' : work, needs: needs === '—' ? '' : needs };
-    }
-    return { work: text, needs: '' };
-  }
-
-  function renderDepartmentLogFields(departments, item) {
-    const editor = $('#departmentUpdates');
-    if (!departments.length) {
-      editor.innerHTML = '<p class=\"no-data\">No departments are listed in the equipment register.</p>';
-      return;
-    }
-    const fields = getLogFields(item || {});
-    editor.innerHTML = departments.map(department => {
-      const isGeneral = !department;
-      return `
-        <section class=\"department-update\" ${department ? `data-department=\"${esc(department)}\"` : 'data-general-update'}>
-          <h3>${esc(department || 'General update')}</h3>
-          ${isGeneral
-            ? `<label>Daily update<textarea data-log-general rows=\"4\" required placeholder=\"Work completed, issue observed, or follow-up needed\">${esc(item?.text || '')}</textarea></label>`
-            : `<label>Work completed<textarea data-log-work rows=\"3\" placeholder=\"What work was completed?\">${esc(fields.work)}</textarea></label>
-               <label>Needs / follow-up<textarea data-log-needs rows=\"3\" placeholder=\"What does this department need next?\">${esc(fields.needs)}</textarea></label>`}
-        </section>`;
-    }).join('');
-  }
-
-  function departmentLogText(work, needs) {
-    return `Work completed:\n${work || '—'}\n\nNeeds / follow-up:\n${needs || '—'}`;
-  }
+  const dailyReportTemplate = [
+    'Equipment status / downtime:', '',
+    'Work completed:', '',
+    'Issues / observations:', '',
+    'Parts / support needed:', '',
+    'Pending / follow-up / handover:'
+  ].join('\n');
 
   function renderLogs() {
     const sorted = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -458,10 +428,7 @@
           <div class="log-item" onclick="openLog('${x.id}')">
             <b>${esc(x.department || x.text || 'General update')}</b>
             <span>${prettyDate(x.date)} · ${esc(x.author)} · ${(x.comments || []).length} comments</span>
-            ${x.department
-              ? `<p><strong>Work completed:</strong>\n${esc(getLogFields(x).work || '—')}</p>
-                 <p><strong>Needs / follow-up:</strong>\n${esc(getLogFields(x).needs || '—')}</p>`
-              : ''}
+            <p class="log-report-preview">${esc(x.text || '')}</p>
             <div class="event-actions" data-write>
               <button class="plain" onclick="event.stopPropagation();editLog('${x.id}')">Edit</button>
               <button class="danger" onclick="event.stopPropagation();deleteLog('${x.id}')">Delete</button>
@@ -478,10 +445,12 @@
     const f = $('#logForm'); f.reset();
     f.elements.date.value = item?.date || new Date().toISOString().slice(0, 10);
     f.elements.author.value = item?.author || '';
-    renderDepartmentLogFields(
-      item ? [item.department || ''] : logDepartments(),
-      item
-    );
+    const department = item?.department || item?.scope || '';
+    const departments = logDepartments();
+    $('#logDepartment').innerHTML = '<option value="">Select department</option>' +
+      departments.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+    $('#logDepartment').value = departments.includes(department) ? department : '';
+    $('#logReportText').value = item?.text || item?.details || dailyReportTemplate;
     $('#logEditor').showModal();
   }
 
@@ -499,7 +468,7 @@
   function renderLogDetail() {
     const log = activeLog();
     if (!log) return;
-    $('#detailTitle').textContent = `${log.department ? `${log.department} · ` : ''}${prettyDate(log.date)} · ${log.author}`;
+    $('#detailTitle').textContent = `${log.department || log.scope ? `${log.department || log.scope} · ` : ''}${prettyDate(log.date)} · ${log.author}`;
     $('#detailText').textContent = log.text;
     $('#comments').innerHTML = (log.comments || []).map(c =>
       `<div class="comment"><b>${esc(c.author)}</b> <small>${prettyDate(c.date)}</small><br>${esc(c.text)}</div>`
@@ -557,54 +526,22 @@
   $('#logForm').onsubmit = e => {
     e.preventDefault();
     if (!canManage()) return;
-    const form = e.target;
-    const date = form.elements.date.value;
-    const author = form.elements.author.value.trim();
+    const values = Object.fromEntries(new FormData(e.target));
+    values.author = values.author.trim();
+    values.department = values.department.trim();
+    values.text = values.text.trim();
+    const reportDetails = values.text.replace(
+      /^\s*(Equipment status \/ downtime|Work completed|Issues \/ observations|Parts \/ support needed|Pending \/ follow-up \/ handover):\s*$/gm,
+      ''
+    ).trim();
+    if (!reportDetails) {
+      alert('Enter at least one detail in the daily report before saving.');
+      return;
+    }
     if (editingLogId) {
-      const original = logs.find(log => log.id === editingLogId);
-      if (!original) return;
-      const update = $('#departmentUpdates [data-department], #departmentUpdates [data-general-update]');
-      if (original.department) {
-        const work = update.querySelector('[data-log-work]').value.trim();
-        const needs = update.querySelector('[data-log-needs]').value.trim();
-        if (!work && !needs) {
-          alert('Enter work completed or a need for this department.');
-          return;
-        }
-        logs = logs.map(log => log.id === editingLogId ? {
-          ...log, date, author, work, needs, text: departmentLogText(work, needs)
-        } : log);
-      } else {
-        const text = update.querySelector('[data-log-general]').value.trim();
-        if (!text) {
-          alert('Enter a daily update.');
-          return;
-        }
-        logs = logs.map(log => log.id === editingLogId ? { ...log, date, author, text } : log);
-      }
+      logs = logs.map(log => log.id === editingLogId ? { ...log, ...values } : log);
     } else {
-      const updates = [...$('#departmentUpdates').querySelectorAll('[data-department]')]
-        .map(row => ({
-          department: row.dataset.department,
-          work: row.querySelector('[data-log-work]').value.trim(),
-          needs: row.querySelector('[data-log-needs]').value.trim()
-        }))
-        .filter(update => update.work || update.needs);
-      if (!updates.length) {
-        alert('Enter work completed or a need for at least one department.');
-        return;
-      }
-      const timestamp = Date.now();
-      logs.push(...updates.map((update, index) => ({
-        id: `log-${timestamp}-${index}`,
-        date,
-        author,
-        ...update,
-        text: departmentLogText(update.work, update.needs),
-        category: 'Department Update',
-        scope: update.department,
-        comments: []
-      })));
+      logs.push({ id: 'log-' + Date.now(), comments: [], ...values, category: 'Department Update', scope: values.department });
     }
     save(); $('#logEditor').close(); renderLogs();
   };
