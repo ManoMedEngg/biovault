@@ -451,6 +451,7 @@
       departments.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
     $('#logDepartment').value = departments.includes(department) ? department : '';
     $('#logReportText').value = item?.text || item?.details || dailyReportTemplate;
+    $('#additionalLogInfo').replaceChildren();
     $('#logEditor').showModal();
   }
 
@@ -522,6 +523,18 @@
   $('#logClose').onclick = () => $('#logDialog').close();
   $('#addLogBtn').onclick = () => openLogEditor();
   $('#logEditClose').onclick = $('#logCancel').onclick = () => $('#logEditor').close();
+  $('#addLogInfoBtn').onclick = () => {
+    const section = document.createElement('label');
+    section.className = 'log-report-label additional-log-field';
+    section.textContent = 'Additional information';
+    const textarea = document.createElement('textarea');
+    textarea.rows = 5;
+    textarea.dataset.additionalLogInfo = '';
+    textarea.placeholder = 'Add any other work, observations, or follow-up details';
+    section.append(textarea);
+    $('#additionalLogInfo').append(section);
+    textarea.focus();
+  };
 
   $('#logForm').onsubmit = e => {
     e.preventDefault();
@@ -530,6 +543,14 @@
     values.author = values.author.trim();
     values.department = values.department.trim();
     values.text = values.text.trim();
+    const additionalInfo = [...$('#additionalLogInfo').querySelectorAll('[data-additional-log-info]')]
+      .map(field => field.value.trim())
+      .filter(Boolean);
+    if (additionalInfo.length) {
+      values.text += `${values.text ? '\n\n' : ''}${additionalInfo
+        .map((text, index) => `Additional information${additionalInfo.length > 1 ? ` ${index + 1}` : ''}:\n${text}`)
+        .join('\n\n')}`;
+    }
     const reportDetails = values.text.replace(
       /^\s*(Equipment status \/ downtime|Work completed|Issues \/ observations|Parts \/ support needed|Pending \/ follow-up \/ handover):\s*$/gm,
       ''
