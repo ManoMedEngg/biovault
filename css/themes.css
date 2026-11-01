@@ -1,5 +1,5 @@
 /* =========================================================
-   BioTrack — Light & Dark theme (grayscale only)
+   BioVault — Light & Dark theme (grayscale only)
    Default on first load = DARK mode
    Toggle by adding/removing .light-mode on <body>
    ========================================================= */
@@ -30,12 +30,6 @@ body {
 }
 .topbar small { color: #b0b0b0; }
 .brand { color: #ffffff; }
-.brand-mark {
-  background: #ffffff;
-  color: #0a0a0a;
-  border: 2px solid #ffffff;
-  box-shadow: none;
-}
 
 /* --- Main headings --- */
 .heading h1 {
@@ -257,10 +251,6 @@ dialog::backdrop { background: #000000bb; }
 }
 .auth-card h1 { color: #ffffff; }
 .auth-card label { color: #d0d0d0; }
-.auth-symbol {
-  background: #ffffff;
-  color: #0a0a0a;
-}
 .eyebrow { color: #a0a0a0; }
 .auth-copy { color: #b8b8b8; }
 .auth-message { color: #b8b8b8; }
@@ -284,11 +274,6 @@ body.light-mode .topbar {
 }
 body.light-mode .topbar small { color: #666666; }
 body.light-mode .brand { color: #111111; }
-body.light-mode .brand-mark {
-  background: #111111;
-  color: #ffffff;
-  border: 2px solid #111111;
-}
 
 /* --- Headings --- */
 body.light-mode .heading h1 {
@@ -504,10 +489,6 @@ body.light-mode .auth-card {
 }
 body.light-mode .auth-card h1 { color: #111111; }
 body.light-mode .auth-card label { color: #333333; }
-body.light-mode .auth-symbol {
-  background: #111111;
-  color: #ffffff;
-}
 body.light-mode .eyebrow { color: #666666; }
 body.light-mode .auth-copy { color: #555555; }
 body.light-mode .auth-message { color: #555555; }
@@ -516,7 +497,6 @@ body.light-mode .auth-small { color: #777777; }
 body[data-theme="ocean"] { --theme-accent: #218d9b; }
 body[data-theme="violet"] { --theme-accent: #7654a8; }
 body[data-theme="sunset"] { --theme-accent: #d56b45; }
-body[data-theme] .brand-mark,
 body[data-theme] .tag { border-color: var(--theme-accent); }
 body[data-theme] .stock-table th { color: #555555; }
 body[data-theme] .theme-dots button[aria-pressed="true"] {

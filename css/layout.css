@@ -8,9 +8,9 @@
 }
 .brand { display: flex; align-items: center; gap: 12px; font-weight: 750; letter-spacing: .1px; }
 .brand-mark {
-  width: 37px; height: 37px; border: 2px solid #86ded7;
-  display: grid; place-items: center; border-radius: 11px;
-  font-size: 22px; background: #fff; color: #111; box-shadow: none;
+  display: block; width: 156px; height: auto;
+  border: 0; border-radius: 0; background: #fff;
+  box-shadow: none;
 }
 .topbar small { color: #b9b9b9; font-weight: 500; }
 

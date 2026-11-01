@@ -1,4 +1,4 @@
-# BioTrack Biomedical Equipment Register
+# BioVault Biomedical Equipment Register
 
 An offline single-page register for biomedical engineering teams.
 

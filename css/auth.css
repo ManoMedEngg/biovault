@@ -9,11 +9,9 @@
   background: #fff; border: 1px solid #d2d2d2;
   box-shadow: 0 20px 55px #00000018; border-radius: 18px;
 }
-.auth-symbol {
-  display: grid; place-items: center;
-  width: 44px; height: 44px; border-radius: 12px;
-  background: #171717; color: #fff;
-  font-size: 28px; margin-bottom: 23px;
+.auth-logo {
+  display: block; width: 180px; max-width: 100%; height: auto;
+  margin-bottom: 18px;
 }
 .eyebrow {
   font-size: 11px; font-weight: 800; letter-spacing: 1.1px;
