@@ -303,14 +303,14 @@
         <label>Log date <input name="date" type="date" required></label>
         <label>Author <input name="author" required placeholder="Your name"></label>
       </div>
-      <p class="helper log-editor-hint">Complete the end-of-day report below. You can edit the template and type directly into the report.</p>
+      <p class="helper log-editor-hint">Type the end-of-day report for the selected department. Add more text fields if needed.</p>
       <label class="wide">Department
         <select name="department" id="logDepartment" required>
           <option value="">Select department</option>
         </select>
       </label>
       <label class="log-report-label">Department end-of-day report
-        <textarea name="text" id="logReportText" rows="14" required spellcheck="true"></textarea>
+        <textarea name="text" id="logReportText" rows="14" required spellcheck="true" placeholder="Type your report here..."></textarea>
       </label>
       <div id="additionalLogInfo" class="additional-log-info"></div>
       <button type="button" class="plain" id="addLogInfoBtn">+ Add more information</button>

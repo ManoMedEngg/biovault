@@ -413,14 +413,6 @@
     ...logs.map(item => item.department || item.scope)
   ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-  const dailyReportTemplate = [
-    'Equipment status / downtime:', '',
-    'Work completed:', '',
-    'Issues / observations:', '',
-    'Parts / support needed:', '',
-    'Pending / follow-up / handover:'
-  ].join('\n');
-
   function renderLogs() {
     const sorted = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
     $('#logList').innerHTML = sorted.length
@@ -450,7 +442,7 @@
     $('#logDepartment').innerHTML = '<option value="">Select department</option>' +
       departments.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
     $('#logDepartment').value = departments.includes(department) ? department : '';
-    $('#logReportText').value = item?.text || item?.details || dailyReportTemplate;
+    $('#logReportText').value = item?.text || item?.details || '';
     $('#additionalLogInfo').replaceChildren();
     $('#logEditor').showModal();
   }
