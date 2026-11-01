@@ -101,6 +101,10 @@ select:focus {
   color: #eeeeee;
   border-color: #2a2a2a;
 }
+body:not(.light-mode) .table-wrap tbody tr:hover > td {
+  background: #1e303c;
+  color: #e1e9ef;
+}
 tbody tr:hover { background: #232323; }
 
 /* --- Tags & muted text --- */
