@@ -302,11 +302,12 @@
       <div class="form-grid">
         <label>Log date <input name="date" type="date" required></label>
         <label>Author <input name="author" required placeholder="Your name"></label>
-        <label class="wide">Daily update <input name="text" required placeholder="Work completed, issue observed, or follow-up needed"></label>
       </div>
+      <p class="helper log-editor-hint">Add the work completed and any needs or follow-up for each department. Leave a department blank if there is nothing to report.</p>
+      <div id="departmentUpdates" class="department-updates"></div>
       <div class="modal-actions">
         <button type="button" class="plain" id="logCancel">Cancel</button>
-        <button class="primary" type="submit">Save update</button>
+        <button class="primary" type="submit">Save daily report</button>
       </div>
     </form>
   </dialog>

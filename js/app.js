@@ -39,7 +39,12 @@
     localStorage.setItem('biotrack-stock', JSON.stringify(stock));
   }
   localStorage.setItem('biotrack-stock-sheet-import-v1', 'true');
-  let logs = JSON.parse(localStorage.getItem('biotrack-logs') || 'null') || [];
+  const savedLogs = JSON.parse(localStorage.getItem('biotrack-logs') || '[]');
+  const savedLogbook = JSON.parse(localStorage.getItem('biotrack-logbook') || '[]');
+  let logs = [...new Map([...savedLogbook, ...savedLogs].map((log, index) => [
+    log.id || `saved-log-${index}`,
+    log
+  ])).values()];
   let team = JSON.parse(localStorage.getItem('biotrack-team') || 'null') || [];
   let notifications = JSON.parse(localStorage.getItem('biotrack-alerts') || 'null') || [];
 
@@ -54,6 +59,7 @@
     localStorage.setItem('biotrack-history', JSON.stringify(history));
     localStorage.setItem('biotrack-stock', JSON.stringify(stock));
     localStorage.setItem('biotrack-logs', JSON.stringify(logs));
+    localStorage.setItem('biotrack-logbook', JSON.stringify(logs));
     localStorage.setItem('biotrack-team', JSON.stringify(team));
     localStorage.setItem('biotrack-alerts', JSON.stringify(notifications));
     window.dispatchEvent(new Event('biotrack-local-change'));
@@ -402,13 +408,60 @@
   };
 
   /* ---------- Logs ---------- */
+  const logDepartments = () => [...new Set([
+    ...equipment.map(item => item.department),
+    ...logs.map(item => item.department)
+  ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+  function getLogFields(item) {
+    if (item.work !== undefined || item.needs !== undefined) {
+      return { work: item.work || '', needs: item.needs || '' };
+    }
+    const text = item.text || '';
+    const needsMarker = '\n\nNeeds / follow-up:\n';
+    const workMarker = 'Work completed:\n';
+    if (text.startsWith(workMarker) && text.includes(needsMarker)) {
+      const [work, needs] = text.slice(workMarker.length).split(needsMarker, 2);
+      return { work: work === '—' ? '' : work, needs: needs === '—' ? '' : needs };
+    }
+    return { work: text, needs: '' };
+  }
+
+  function renderDepartmentLogFields(departments, item) {
+    const editor = $('#departmentUpdates');
+    if (!departments.length) {
+      editor.innerHTML = '<p class=\"no-data\">No departments are listed in the equipment register.</p>';
+      return;
+    }
+    const fields = getLogFields(item || {});
+    editor.innerHTML = departments.map(department => {
+      const isGeneral = !department;
+      return `
+        <section class=\"department-update\" ${department ? `data-department=\"${esc(department)}\"` : 'data-general-update'}>
+          <h3>${esc(department || 'General update')}</h3>
+          ${isGeneral
+            ? `<label>Daily update<textarea data-log-general rows=\"4\" required placeholder=\"Work completed, issue observed, or follow-up needed\">${esc(item?.text || '')}</textarea></label>`
+            : `<label>Work completed<textarea data-log-work rows=\"3\" placeholder=\"What work was completed?\">${esc(fields.work)}</textarea></label>
+               <label>Needs / follow-up<textarea data-log-needs rows=\"3\" placeholder=\"What does this department need next?\">${esc(fields.needs)}</textarea></label>`}
+        </section>`;
+    }).join('');
+  }
+
+  function departmentLogText(work, needs) {
+    return `Work completed:\n${work || '—'}\n\nNeeds / follow-up:\n${needs || '—'}`;
+  }
+
   function renderLogs() {
     const sorted = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
     $('#logList').innerHTML = sorted.length
       ? sorted.map(x => `
           <div class="log-item" onclick="openLog('${x.id}')">
-            <b>${esc(x.text)}</b>
+            <b>${esc(x.department || x.text || 'General update')}</b>
             <span>${prettyDate(x.date)} · ${esc(x.author)} · ${(x.comments || []).length} comments</span>
+            ${x.department
+              ? `<p><strong>Work completed:</strong>\n${esc(getLogFields(x).work || '—')}</p>
+                 <p><strong>Needs / follow-up:</strong>\n${esc(getLogFields(x).needs || '—')}</p>`
+              : ''}
             <div class="event-actions" data-write>
               <button class="plain" onclick="event.stopPropagation();editLog('${x.id}')">Edit</button>
               <button class="danger" onclick="event.stopPropagation();deleteLog('${x.id}')">Delete</button>
@@ -423,8 +476,12 @@
     editingLogId = item?.id || null;
     $('#logTitle').textContent = editingLogId ? 'Edit daily update' : 'Add daily update';
     const f = $('#logForm'); f.reset();
-    Object.entries(item || { date: new Date().toISOString().slice(0, 10) })
-      .forEach(([k, v]) => { if (f.elements[k]) f.elements[k].value = v || ''; });
+    f.elements.date.value = item?.date || new Date().toISOString().slice(0, 10);
+    f.elements.author.value = item?.author || '';
+    renderDepartmentLogFields(
+      item ? [item.department || ''] : logDepartments(),
+      item
+    );
     $('#logEditor').showModal();
   }
 
@@ -442,7 +499,7 @@
   function renderLogDetail() {
     const log = activeLog();
     if (!log) return;
-    $('#detailTitle').textContent = `${prettyDate(log.date)} · ${log.author}`;
+    $('#detailTitle').textContent = `${log.department ? `${log.department} · ` : ''}${prettyDate(log.date)} · ${log.author}`;
     $('#detailText').textContent = log.text;
     $('#comments').innerHTML = (log.comments || []).map(c =>
       `<div class="comment"><b>${esc(c.author)}</b> <small>${prettyDate(c.date)}</small><br>${esc(c.text)}</div>`
@@ -500,9 +557,55 @@
   $('#logForm').onsubmit = e => {
     e.preventDefault();
     if (!canManage()) return;
-    const values = Object.fromEntries(new FormData(e.target));
-    if (editingLogId) logs = logs.map(x => x.id === editingLogId ? { ...x, ...values } : x);
-    else logs.push({ id: 'log-' + Date.now(), comments: [], ...values });
+    const form = e.target;
+    const date = form.elements.date.value;
+    const author = form.elements.author.value.trim();
+    if (editingLogId) {
+      const original = logs.find(log => log.id === editingLogId);
+      if (!original) return;
+      const update = $('#departmentUpdates [data-department], #departmentUpdates [data-general-update]');
+      if (original.department) {
+        const work = update.querySelector('[data-log-work]').value.trim();
+        const needs = update.querySelector('[data-log-needs]').value.trim();
+        if (!work && !needs) {
+          alert('Enter work completed or a need for this department.');
+          return;
+        }
+        logs = logs.map(log => log.id === editingLogId ? {
+          ...log, date, author, work, needs, text: departmentLogText(work, needs)
+        } : log);
+      } else {
+        const text = update.querySelector('[data-log-general]').value.trim();
+        if (!text) {
+          alert('Enter a daily update.');
+          return;
+        }
+        logs = logs.map(log => log.id === editingLogId ? { ...log, date, author, text } : log);
+      }
+    } else {
+      const updates = [...$('#departmentUpdates').querySelectorAll('[data-department]')]
+        .map(row => ({
+          department: row.dataset.department,
+          work: row.querySelector('[data-log-work]').value.trim(),
+          needs: row.querySelector('[data-log-needs]').value.trim()
+        }))
+        .filter(update => update.work || update.needs);
+      if (!updates.length) {
+        alert('Enter work completed or a need for at least one department.');
+        return;
+      }
+      const timestamp = Date.now();
+      logs.push(...updates.map((update, index) => ({
+        id: `log-${timestamp}-${index}`,
+        date,
+        author,
+        ...update,
+        text: departmentLogText(update.work, update.needs),
+        category: 'Department Update',
+        scope: update.department,
+        comments: []
+      })));
+    }
     save(); $('#logEditor').close(); renderLogs();
   };
 
@@ -566,7 +669,12 @@
         localStorage.setItem('biotrack-stock', combinedStock);
         window.dispatchEvent(new Event('biotrack-local-change'));
       }
-      logs = JSON.parse(localStorage.getItem('biotrack-logs') || '[]');
+      const cloudLogs = JSON.parse(localStorage.getItem('biotrack-logs') || '[]');
+      const cloudLogbook = JSON.parse(localStorage.getItem('biotrack-logbook') || '[]');
+      logs = [...new Map([...cloudLogbook, ...cloudLogs].map((log, index) => [
+        log.id || `cloud-log-${index}`,
+        log
+      ])).values()];
       render();
     }
   };

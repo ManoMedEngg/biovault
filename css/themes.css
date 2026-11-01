@@ -507,3 +507,16 @@ body[data-theme] .theme-dots button[aria-pressed="true"] {
   outline: 2px solid var(--theme-accent);
   outline-offset: 2px;
 }
+
+body:not(.light-mode) .department-update {
+  border-color: #314551;
+  background: #1b2a35;
+  color: #e1e9ef;
+}
+body:not(.light-mode) .department-update h3 { color: #edf4f8; }
+body:not(.light-mode) .department-update label { color: #c5d4df; }
+body:not(.light-mode) .department-update textarea {
+  border-color: #405464;
+  background: #101a24;
+  color: #edf4f8;
+}
